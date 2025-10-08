@@ -1,5 +1,7 @@
+// pages/api/interviews/book.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import clientPromise from '../../../utils/db';
+import { ObjectId } from 'mongodb';
+import clientPromise from '@/utils/db';
 
 export default async function handler(
   req: NextApiRequest,
@@ -21,7 +23,7 @@ export default async function handler(
 
     // Verificar que el time slot existe y está disponible
     const timeSlot = await db.collection('timeslots').findOne({ 
-      _id: new (require('mongodb').ObjectId)(timeSlotId) 
+      _id: new ObjectId(timeSlotId) 
     });
 
     if (!timeSlot) {
@@ -32,24 +34,27 @@ export default async function handler(
       return res.status(400).json({ message: 'Time slot already booked' });
     }
 
-    // Obtener información de la entrevista
+    // Verificar que la entrevista existe y está activa
     const interview = await db.collection('interviews').findOne({ 
-      _id: new (require('mongodb').ObjectId)(interviewId) 
+      _id: new ObjectId(interviewId),
+      isActive: true 
     });
 
     if (!interview) {
-      return res.status(404).json({ message: 'Interview not found' });
+      return res.status(404).json({ message: 'Interview not found or inactive' });
     }
 
     // Crear reserva
     const reservation = {
-      candidateId: `candidate-${Date.now()}`,
+      candidateId: `candidate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       recruiterId: interview.recruiterId,
       interviewId,
       timeSlotId,
       candidateName,
       candidateEmail,
       date: timeSlot.date,
+      startTime: timeSlot.startTime,
+      endTime: timeSlot.endTime,
       status: 'confirmed',
       createdAt: new Date(),
     };
@@ -58,11 +63,12 @@ export default async function handler(
 
     // Marcar time slot como reservado
     await db.collection('timeslots').updateOne(
-      { _id: new (require('mongodb').ObjectId)(timeSlotId) },
+      { _id: new ObjectId(timeSlotId) },
       { 
         $set: { 
           isBooked: true,
-          bookedBy: candidateEmail
+          bookedBy: candidateEmail,
+          bookedAt: new Date()
         } 
       }
     );
@@ -70,7 +76,17 @@ export default async function handler(
     res.status(201).json({
       reservation: {
         id: reservationResult.insertedId.toString(),
-        ...reservation
+        candidateId: reservation.candidateId,
+        recruiterId: reservation.recruiterId,
+        interviewId: reservation.interviewId,
+        timeSlotId: reservation.timeSlotId,
+        candidateName: reservation.candidateName,
+        candidateEmail: reservation.candidateEmail,
+        date: reservation.date,
+        startTime: reservation.startTime,
+        endTime: reservation.endTime,
+        status: reservation.status,
+        createdAt: reservation.createdAt,
       },
       timeSlotId,
       message: 'Time slot booked successfully',

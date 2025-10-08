@@ -21,6 +21,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getInterviewByUrl, bookTimeSlot, clearError } from '../../store/slices/interviewSlice';
 import { RootState } from '../../store';
 import { TimeSlot } from '../../types';
+import { InterviewVideoButton } from '@/components/InterviewVideoButton';
 
 const PublicInterviewPage: React.FC = () => {
   const router = useRouter();
@@ -60,7 +61,6 @@ const PublicInterviewPage: React.FC = () => {
   };
 
   const formatDate = (date: Date | string) => {
-    // Asegurarnos de que tenemos un objeto Date
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     return dateObj.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -71,12 +71,33 @@ const PublicInterviewPage: React.FC = () => {
   };
 
   const formatTime = (time: string) => {
-    // Formatear hora de 24h a 12h
     const [hours, minutes] = time.split(':');
     const hour = parseInt(hours, 10);
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const formattedHour = hour % 12 || 12;
     return `${formattedHour}:${minutes} ${ampm}`;
+  };
+
+  // Función para crear un objeto compatible con InterviewVideoButton
+  const createVideoButtonReservation = (slot: TimeSlot) => {
+    return {
+      id: `mock-${slot.id}`,
+      interviewId: currentInterview?.id || 'mock-interview',
+      candidateEmail: '',
+      candidateName: '',
+      date: slot.date,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      status: 'confirmed' as const,
+      interviewTitle: currentInterview?.title || 'Interview',
+      recruiterName: currentInterview?.recruiter?.name || 'Recruiter',
+      recruiterEmail: currentInterview?.recruiter?.email || '',
+      meetingLink: undefined, // Usar undefined en lugar de null
+      notes: undefined,
+      rescheduleReason: undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
   };
 
   if (loading) {
@@ -115,6 +136,11 @@ const PublicInterviewPage: React.FC = () => {
           <Typography variant="body2" color="text.secondary">
             Duration: {currentInterview.duration} minutes
           </Typography>
+          {currentInterview.recruiter && (
+            <Typography variant="body2" color="text.secondary">
+              Recruiter: {currentInterview.recruiter.name}
+            </Typography>
+          )}
         </Box>
 
         {error && (
@@ -133,34 +159,46 @@ const PublicInterviewPage: React.FC = () => {
           </Alert>
         ) : (
           <Grid container spacing={2}>
-            {timeSlots.map((slot) => (
-              <Grid item xs={12} md={6} key={slot.id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      {formatDate(slot.date)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      fullWidth
-                      onClick={() => handleBookSlot(slot)}
-                    >
-                      Book This Slot
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+            {timeSlots.map((slot) => {
+              const videoButtonReservation = createVideoButtonReservation(slot);
+              return (
+                <Grid item xs={12} md={6} key={slot.id}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        {formatDate(slot.date)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        onClick={() => handleBookSlot(slot)}
+                        sx={{ mb: 1 }}
+                      >
+                        Book This Slot
+                      </Button>
+                      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                        <InterviewVideoButton
+                          reservation={videoButtonReservation}
+                          variant="outlined"
+                          size="small"
+                          showStatus={false}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         )}
       </Paper>
 
       {/* Dialog para reservar */}
-      <Dialog open={bookingDialogOpen} onClose={() => setBookingDialogOpen(false)}>
+      <Dialog open={bookingDialogOpen} onClose={() => setBookingDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Book Time Slot</DialogTitle>
         <DialogContent>
           {selectedSlot && (
@@ -169,7 +207,10 @@ const PublicInterviewPage: React.FC = () => {
                 You are booking:
               </Typography>
               <Typography variant="body1" fontWeight="bold">
-                {formatDate(selectedSlot.date)} at {formatTime(selectedSlot.startTime)} - {formatTime(selectedSlot.endTime)}
+                {formatDate(selectedSlot.date)} at {formatTime(selectedSlot.startTime)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Duration: {formatTime(selectedSlot.startTime)} - {formatTime(selectedSlot.endTime)}
               </Typography>
             </Box>
           )}

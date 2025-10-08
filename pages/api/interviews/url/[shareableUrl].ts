@@ -1,5 +1,7 @@
+// pages/api/interviews/url/[shareableUrl].ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import clientPromise from '../../../../utils/db';
+import { ObjectId } from 'mongodb';
+import clientPromise from '@/utils/db';
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,6 +13,10 @@ export default async function handler(
 
   try {
     const { shareableUrl } = req.query;
+
+    if (!shareableUrl) {
+      return res.status(400).json({ message: 'Shareable URL is required' });
+    }
 
     const client = await clientPromise;
     const db = client.db();
@@ -25,7 +31,7 @@ export default async function handler(
       return res.status(404).json({ message: 'Interview not found or inactive' });
     }
 
-    // Obtener time slots disponibles
+    // Obtener time slots disponibles (futuros y no reservados)
     const timeSlots = await db.collection('timeslots')
       .find({ 
         interviewId: interview._id.toString(),

@@ -1,6 +1,7 @@
+// pages/api/interviews/create.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import clientPromise from '../../../utils/db';
-import { InterviewStructure, TimeSlot } from '../../../types';
+import { ObjectId } from 'mongodb';
+import clientPromise from '@/utils/db';
 
 export default async function handler(
   req: NextApiRequest,
@@ -27,8 +28,8 @@ export default async function handler(
     const interview = {
       recruiterId,
       title,
-      description,
-      duration,
+      description: description || '',
+      duration: parseInt(duration),
       isActive: true,
       shareableUrl,
       createdAt: new Date(),
@@ -37,23 +38,25 @@ export default async function handler(
     const interviewResult = await db.collection('interviews').insertOne(interview);
     const interviewId = interviewResult.insertedId.toString();
 
-    // Crear time slots
-    const timeSlotsToInsert = availableSlots.map((slot: any) => ({
-      interviewId,
-      date: new Date(slot.date),
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      isBooked: false,
-      createdAt: new Date(),
-    }));
+    // Crear time slots si se proporcionaron
+    let timeSlotsToInsert: any[] = [];
+    if (availableSlots && Array.isArray(availableSlots)) {
+      timeSlotsToInsert = availableSlots.map((slot: any) => ({
+        interviewId,
+        date: new Date(slot.date),
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isBooked: false,
+        createdAt: new Date(),
+      }));
 
-    if (timeSlotsToInsert.length > 0) {
-      await db.collection('timeslots').insertMany(timeSlotsToInsert);
+      if (timeSlotsToInsert.length > 0) {
+        await db.collection('timeslots').insertMany(timeSlotsToInsert);
+      }
     }
 
-    // Obtener la entrevista creada con sus time slots
+    // Obtener la entrevista creada
     const createdInterview = await db.collection('interviews').findOne({ _id: interviewResult.insertedId });
-    const timeSlots = await db.collection('timeslots').find({ interviewId }).toArray();
 
     res.status(201).json({
       interview: {
@@ -65,15 +68,15 @@ export default async function handler(
         isActive: createdInterview!.isActive,
         shareableUrl: createdInterview!.shareableUrl,
         createdAt: createdInterview!.createdAt,
+        availableSlots: timeSlotsToInsert.map(slot => ({
+          id: slot._id ? slot._id.toString() : 'temp-id',
+          interviewId: slot.interviewId,
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          isBooked: slot.isBooked,
+        })),
       },
-      timeSlots: timeSlots.map(slot => ({
-        id: slot._id.toString(),
-        interviewId: slot.interviewId,
-        date: slot.date,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        isBooked: slot.isBooked,
-      })),
       message: 'Interview created successfully',
     });
   } catch (error) {
