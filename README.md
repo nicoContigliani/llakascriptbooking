@@ -1,41 +1,47 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🗓️ Interview Scheduling System
 
-## Getting Started
+## 📖 Overview
+A full-stack **interview scheduling application** built with **Next.js 13.5**, **Redux Toolkit**, and **MongoDB**.  
+The system allows **recruiters** to create and manage interview sessions, while **candidates** can book available time slots seamlessly.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ✨ Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 🔐 Authentication System
+- **User Registration & Login** – Secure authentication using JWT tokens  
+- **Persistent Sessions** – Automatic login state restoration via `localStorage`  
+- **Protected Routes** – Restricts access based on authentication status  
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+### 🧩 Interview Management
+- **Create Interviews** – Recruiters can create interviews with custom details  
+- **Interview Dashboard** – View and manage all created interviews  
+- **Update Interviews** – Modify title, duration, or activation status  
+- **Delete Interviews** – Remove interviews when no longer needed  
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+### ⏰ Time Slot Management
+- **Shareable Interview Links** – Generate unique URLs for candidates  
+- **Time Slot Booking** – Candidates can book available slots with personal details  
+- **Real-time Availability** – Automatically updates booked/available time slots  
+- **Reservation Management** – View and cancel existing reservations  
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+### 👩‍💼 Candidate Features
+- **Reservation Access** – Candidates can view their scheduled interviews  
+- **Cancellation** – Cancel bookings when necessary  
+- **Email-based Tracking** – Each reservation is tied to a candidate email  
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+---
 
-## Learn More
+## 🧠 Technical Stack
 
-To learn more about Next.js, take a look at the following resources:
+### 🎨 Frontend
+- **Next.js 13.5** – React framework using App Router  
+- **Redux Toolkit** – Centralized state management with async thunks  
+- **TypeScript** – Ensures type safety across the app  
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### ⚙️ Backend & Database
+- **MongoDB** – NoSQL database for storing users, interviews, and reservations  
+- **RESTful API** – Custom endpoints for all CRUD operations  
+- **JWT Authentication** – Secure token-based user sessions  
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-# llakascriptbooking
+--
