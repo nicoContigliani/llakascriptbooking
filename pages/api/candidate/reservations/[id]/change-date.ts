@@ -107,6 +107,7 @@ export default async function handler(
       _id: new ObjectId(updatedReservation.recruiterId) 
     });
 
+    // Crear el objeto de respuesta sin usar el operador !
     const responseReservation: Reservation = {
       id: updatedReservation._id.toString(),
       candidateId: updatedReservation.candidateId,

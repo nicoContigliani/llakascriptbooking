@@ -1,7 +1,8 @@
-// pages/api/candidate/reservations/[id]/change-date.ts
+// pages/api/candidate/reservations/change-date.ts
 import { NextApiRequest, NextApiResponse } from 'next';
+import clientPromise from '../../../../utils/db';
 import { ObjectId } from 'mongodb';
-import clientPromise from '@/utils/db';
+import { Reservation } from '../../../../types';
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,10 +13,9 @@ export default async function handler(
   }
 
   try {
-    const { id } = req.query;
-    const { newTimeSlotId } = req.body;
+    const { reservationId, newTimeSlotId } = req.body;
 
-    if (!id || !newTimeSlotId) {
+    if (!reservationId || !newTimeSlotId) {
       return res.status(400).json({ message: 'Reservation ID and new time slot ID are required' });
     }
 
@@ -24,7 +24,7 @@ export default async function handler(
 
     // Verificar que la reserva existe
     const reservation = await db.collection('reservations').findOne({ 
-      _id: new ObjectId(id as string) 
+      _id: new ObjectId(reservationId) 
     });
 
     if (!reservation) {
@@ -39,6 +39,15 @@ export default async function handler(
 
     if (!newTimeSlot) {
       return res.status(400).json({ message: 'Selected time slot is not available' });
+    }
+
+    // Obtener información de la nueva entrevista
+    const newInterview = await db.collection('interviews').findOne({ 
+      _id: new ObjectId(newTimeSlot.interviewId) 
+    });
+
+    if (!newInterview) {
+      return res.status(400).json({ message: 'Interview not found for selected time slot' });
     }
 
     // Liberar el time slot anterior
@@ -65,31 +74,58 @@ export default async function handler(
       }
     );
 
-    // Actualizar la reserva con el nuevo time slot
-    const updatedReservation = await db.collection('reservations').findOneAndUpdate(
-      { _id: new ObjectId(id as string) },
+    // Actualizar la reserva con el nuevo time slot y entrevista
+    await db.collection('reservations').updateOne(
+      { _id: new ObjectId(reservationId) },
       { 
         $set: { 
           timeSlotId: newTimeSlotId,
-          date: newTimeSlot.date,
-          startTime: newTimeSlot.startTime,
-          endTime: newTimeSlot.endTime,
           interviewId: newTimeSlot.interviewId,
+          recruiterId: newInterview.recruiterId,
+          date: newTimeSlot.date,
           status: 'confirmed',
           updatedAt: new Date()
         } 
-      },
-      { returnDocument: 'after' }
+      }
     );
 
+    // Obtener la reserva actualizada con toda la información
+    const updatedReservation = await db.collection('reservations').findOne({ 
+      _id: new ObjectId(reservationId) 
+    });
+
+    if (!updatedReservation) {
+      return res.status(404).json({ message: 'Updated reservation not found' });
+    }
+
+    // Obtener información adicional para la respuesta
+    const interview = await db.collection('interviews').findOne({ 
+      _id: new ObjectId(updatedReservation.interviewId) 
+    });
+
+    const recruiter = await db.collection('users').findOne({ 
+      _id: new ObjectId(updatedReservation.recruiterId) 
+    });
+
+    // Crear el objeto de respuesta - SIN OPERADOR ! Y SIN startTime/endTime
+    const responseReservation: Reservation = {
+      id: updatedReservation._id.toString(),
+      candidateId: updatedReservation.candidateId,
+      recruiterId: updatedReservation.recruiterId,
+      interviewId: updatedReservation.interviewId,
+      timeSlotId: updatedReservation.timeSlotId,
+      date: updatedReservation.date,
+      status: updatedReservation.status,
+      candidateName: updatedReservation.candidateName,
+      candidateEmail: updatedReservation.candidateEmail,
+      notes: updatedReservation.notes,
+      createdAt: updatedReservation.createdAt,
+    };
+
     res.status(200).json({
-      reservation: {
-        id: updatedReservation!._id.toString(),
-        timeSlotId: updatedReservation!.timeSlotId,
-        date: updatedReservation!.date,
-        startTime: updatedReservation!.startTime,
-        endTime: updatedReservation!.endTime,
-      },
+      reservation: responseReservation,
+      interviewTitle: interview?.title || 'Unknown Interview',
+      recruiterName: recruiter?.name || 'Unknown Recruiter',
       message: 'Interview date changed successfully',
     });
   } catch (error) {
